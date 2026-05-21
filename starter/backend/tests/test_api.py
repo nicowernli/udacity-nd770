@@ -23,6 +23,7 @@ def test_get_order_api_success(client):
     })
     response = client.get('/api/orders/GET001')
     assert response.status_code == 200
+    print(response.json)
     assert response.json['order_id'] == "GET001"
 
 def test_get_order_api_not_found(client):
