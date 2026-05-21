@@ -66,3 +66,7 @@ class OrderTracker:
     def list_orders_by_status(self, status: str):
         all_orders = self.storage.get_all_orders()
         return {order_id: order for order_id, order in all_orders.items() if order.get('status') == status}
+
+    def delete_order(self, order_id: str):
+        order = self.get_order_by_id(order_id)
+        self.storage.delete_order(order_id)

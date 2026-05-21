@@ -18,5 +18,9 @@ class InMemoryStorage:
     def get_all_orders(self):
         return {k: v.copy() for k, v in self._orders.items()}
 
+    def delete_order(self, order_id: str):
+        if order_id in self._orders:
+            del self._orders[order_id]
+
     def clear(self):
         self._orders = {}

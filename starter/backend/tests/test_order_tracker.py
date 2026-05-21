@@ -226,3 +226,28 @@ def test_order_tracker_update_order_status_invalid_status(order_tracker, mock_st
         f"Order with ID '{order_id}' not found."
     ]
     assert mock_storage.save_order.call_count == 0
+
+def test_order_tracker_delete_order(order_tracker, mock_storage):
+    # Arrange
+    order_id = 'order1'
+    existing_order = {'id': order_id, 'status': 'pending'}
+    mock_storage.get_order.return_value = existing_order
+
+    # Act
+    order_tracker.delete_order(order_id)
+
+    # Assert
+    mock_storage.get_order.assert_called_once_with(order_id)
+    mock_storage.delete_order.assert_called_once_with(order_id)
+
+def test_order_tracker_delete_order_not_found(order_tracker, mock_storage):
+    # Arrange
+    order_id = 'nonexistent_order'
+    mock_storage.get_order.return_value = None
+
+    # Act
+    with pytest.raises(ValueError) as exc_info:
+        order_tracker.delete_order(order_id)
+
+    # Assert
+    assert str(exc_info.value) == f"Order with ID '{order_id}' not found."
