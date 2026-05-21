@@ -1,0 +1,330 @@
+openapi: 3.0.3
+info:
+  title: Order Tracker API
+  version: 1.0.0
+  description: |
+    JSON HTTP API for managing customer orders. Each order has a unique
+    `order_id`, an `item_name`, a positive `quantity`, a `customer_id`, and a
+    `status` drawn from a fixed set of values.
+servers:
+  - url: http://localhost:3002
+    description: Local development server
+tags:
+  - name: orders
+    description: Order management endpoints
+paths:
+  /api/orders:
+    post:
+      tags: [orders]
+      summary: Create a new order
+      operationId: addOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewOrder'
+            example:
+              order_id: "ORD-1001"
+              item_name: "Wireless Mouse"
+              quantity: 2
+              customer_id: "CUST-42"
+              status: "pending"
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreatedResponse'
+              example:
+                message: "Order added successfully"
+                order_id: "ORD-1001"
+        '400':
+          description: Invalid request body, validation error, or duplicate order id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Quantity must be a positive integer."
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "An unexpected error occurred"
+    get:
+      tags: [orders]
+      summary: List orders, optionally filtered by status
+      operationId: listOrders
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: When provided, only orders with this status are returned.
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+              example:
+                - order_id: "ORD-1001"
+                  item_name: "Wireless Mouse"
+                  quantity: 2
+                  customer_id: "CUST-42"
+                  status: "pending"
+                - order_id: "ORD-1002"
+                  item_name: "USB-C Cable"
+                  quantity: 5
+                  customer_id: "CUST-17"
+                  status: "shipped"
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/orders/{order_id}:
+    parameters:
+      - $ref: '#/components/parameters/OrderIdPath'
+    get:
+      tags: [orders]
+      summary: Get an order by id
+      operationId: getOrderById
+      responses:
+        '200':
+          description: The requested order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                order_id: "ORD-1001"
+                item_name: "Wireless Mouse"
+                quantity: 2
+                customer_id: "CUST-42"
+                status: "pending"
+        '404':
+          description: Order not found, or `order_id` is empty/invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Order with ID 'ORD-9999' not found."
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [orders]
+      summary: Delete an order by id
+      operationId: deleteOrder
+      responses:
+        '204':
+          description: Order deleted successfully (no content)
+        '404':
+          description: Order not found, or `order_id` is empty/invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Order with ID 'ORD-9999' not found."
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/orders/{order_id}/status:
+    parameters:
+      - $ref: '#/components/parameters/OrderIdPath'
+    put:
+      tags: [orders]
+      summary: Update the status of an existing order
+      operationId: updateOrderStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+            example:
+              new_status: "shipped"
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatusUpdatedResponse'
+              example:
+                message: "Order status updated successfully"
+                order_id: "ORD-1001"
+                status: "shipped"
+        '400':
+          description: Invalid status value, missing order, or invalid `order_id`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Status must be one of: pending, shipped, completed, cancelled."
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    OrderIdPath:
+      name: order_id
+      in: path
+      required: true
+      description: Unique identifier of the order. Must be a non-empty string.
+      schema:
+        type: string
+        minLength: 1
+      example: "ORD-1001"
+  schemas:
+    OrderStatus:
+      type: string
+      description: Allowed lifecycle states for an order.
+      enum:
+        - pending
+        - shipped
+        - completed
+        - cancelled
+    Order:
+      type: object
+      description: A customer order as stored by the service.
+      required:
+        - order_id
+        - item_name
+        - quantity
+        - customer_id
+        - status
+      properties:
+        order_id:
+          type: string
+          minLength: 1
+          description: Unique identifier of the order.
+        item_name:
+          type: string
+          minLength: 1
+          description: Name of the item being ordered.
+        quantity:
+          type: integer
+          minimum: 1
+          description: Number of units ordered. Must be a positive integer.
+        customer_id:
+          type: string
+          minLength: 1
+          description: Identifier of the customer placing the order.
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+      example:
+        order_id: "ORD-1001"
+        item_name: "Wireless Mouse"
+        quantity: 2
+        customer_id: "CUST-42"
+        status: "pending"
+    NewOrder:
+      type: object
+      description: Request body for creating a new order. `status` is optional and defaults to `pending`.
+      required:
+        - order_id
+        - item_name
+        - quantity
+        - customer_id
+      properties:
+        order_id:
+          type: string
+          minLength: 1
+        item_name:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          minimum: 1
+        customer_id:
+          type: string
+          minLength: 1
+        status:
+          allOf:
+            - $ref: '#/components/schemas/OrderStatus'
+          default: pending
+      example:
+        order_id: "ORD-1001"
+        item_name: "Wireless Mouse"
+        quantity: 2
+        customer_id: "CUST-42"
+    OrderStatusUpdate:
+      type: object
+      description: Request body for updating an order's status.
+      required:
+        - new_status
+      properties:
+        new_status:
+          $ref: '#/components/schemas/OrderStatus'
+      example:
+        new_status: "shipped"
+    OrderCreatedResponse:
+      type: object
+      required:
+        - message
+        - order_id
+      properties:
+        message:
+          type: string
+        order_id:
+          type: string
+      example:
+        message: "Order added successfully"
+        order_id: "ORD-1001"
+    OrderStatusUpdatedResponse:
+      type: object
+      required:
+        - message
+        - order_id
+        - status
+      properties:
+        message:
+          type: string
+        order_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+      example:
+        message: "Order status updated successfully"
+        order_id: "ORD-1001"
+        status: "shipped"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+      example:
+        error: "An unexpected error occurred"
