@@ -73,5 +73,15 @@ def list_orders_api():
     except Exception as e:
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+@app.route('/api/orders/<string:order_id>', methods=['DELETE'])
+def delete_order_api(order_id):
+    try:
+        order_tracker.delete_order(order_id)
+        return '', 204
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 404
+    except Exception as e:
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=3002, debug=True)
