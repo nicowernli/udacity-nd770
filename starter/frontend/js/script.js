@@ -23,8 +23,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         orders.forEach(order => {
             const row = document.createElement('tr');
-            row.innerHTML = `<td class="p-2">${order.order_id}</td><td class="p-2">${order.item_name}</td><td class="p-2">${order.quantity}</td><td class="p-2">${order.customer_id}</td><td class="p-2 capitalize">${order.status}</td>`;
+            row.innerHTML = `
+                <td class="p-2">${order.order_id}</td>
+                <td class="p-2">${order.item_name}</td>
+                <td class="p-2">${order.quantity}</td>
+                <td class="p-2">${order.customer_id}</td>
+                <td class="p-2 capitalize">${order.status}</td>
+                <td class="p-2 text-red-500">
+                    <button class="delete-btn" data-id="${order.order_id}" title="Delete Order">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                    </button>
+                </td>
+            `;
             ordersTableBody.appendChild(row);
+
+            row.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                const button = e.currentTarget.closest('.delete-btn');
+                const orderId = button.getAttribute('data-id');
+                if (confirm(`Are you sure you want to delete order ${orderId}?`)) {
+                    try {
+                        const response = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+                        if (!response.ok) throw new Error('Failed to delete order');
+                        showMessage(`Order ${orderId} deleted.`, 'success');
+                        fetchAndRenderOrders();
+                    } catch (error) { showMessage(`Error deleting order: ${error.message}`, 'error'); }
+                }
+            });
         });
     }
 
@@ -81,6 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchAndRenderOrders();
         } catch (error) { showMessage(`Failed to update status: ${error.message}`, 'error'); }
     });
+
+
 
     listAllOrdersBtn.addEventListener('click', () => { filterStatusSelect.value = ''; fetchAndRenderOrders(); });
     filterStatusSelect.addEventListener('change', (e) => fetchAndRenderOrders(e.target.value));
